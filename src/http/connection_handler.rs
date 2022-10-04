@@ -10,7 +10,9 @@ pub fn http_handler(mut stream: TcpStream) {
         .take_while(|line| !line.is_empty())
         .collect();
 
-    println!("Request: {:#?}", http_request);
+    for l in http_request.iter() {
+        println!("{}", l);
+    }
 
     let response = "HTTP/1.1 200 OK\r\n\r\n";
     stream.write_all(response.as_bytes()).unwrap();
