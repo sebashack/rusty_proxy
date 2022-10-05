@@ -1,18 +1,13 @@
-use anyhow::{Context, Result};
-use std::io::{prelude::*, BufReader};
+use std::io::prelude::*;
 use std::net::TcpStream;
 
-pub fn http_handler(mut stream: TcpStream) {
-    let buff = BufReader::new(&mut stream);
-    let http_request: Vec<_> = buff
-        .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
-        .collect();
+use crate::http::request::Request;
 
-    for l in http_request.iter() {
-        println!("{}", l);
-    }
+pub fn http_handler(mut stream: TcpStream) {
+    let req = Request::from_tcp_stream(&mut stream).unwrap();
+
+    println!("{:?}", req);
+    println!("{:?}", String::from_utf8(req.body));
 
     let response = "HTTP/1.1 200 OK\r\n\r\n";
     stream.write_all(response.as_bytes()).unwrap();
