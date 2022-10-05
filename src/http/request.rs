@@ -166,7 +166,7 @@ fn parse_version(input: &str) -> Result<&str> {
     if input == "HTTP/1.1" {
         Ok("1.1")
     } else {
-        Err(Error::msg(format!("Invalid version: {:?}", input)))
+        Err(Error::msg(format!("Unsupported version: {:?}", input)))
     }
 }
 
@@ -185,7 +185,13 @@ fn parse_method(input: &str) -> Result<Method> {
 }
 
 fn parse_uri<'a>(input: &'a str) -> Result<&str> {
-    if let Ok(_) = Url::parse(format!("http://host/{}", input).as_str()) {
+    let prefix = if input.starts_with("/") {
+        "http://host"
+    } else {
+        ""
+    };
+
+    if let Ok(_) = Url::parse(format!("{}{}", prefix, input).as_str()) {
         Ok(input)
     } else {
         Err(Error::msg(format!("Invalid request-uri: {:?}", input)))
