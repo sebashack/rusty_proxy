@@ -46,13 +46,13 @@ impl Worker {
             if let Ok(lock) = receiver.lock() {
                 if let Ok(job) = lock.recv() {
                     drop(lock);
-                    info!("Executing job in Worker {id}");
+                    info!("Executing job in Worker-{id}");
                     job();
                 } else {
-                    error!("Failed to receive job");
+                    error!("Worker-{id}: Failed to receive job");
                 }
             } else {
-                error!("Failed to get lock");
+                error!("Worker-{id}: Failed to get lock");
             }
         });
 
