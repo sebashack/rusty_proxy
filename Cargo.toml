@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.65"
+env_logger = "0.9.1"
 log = "0.4.17"
-tokio = "1.21.2"
 url = "2.3.1"
