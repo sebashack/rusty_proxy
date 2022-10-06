@@ -34,6 +34,7 @@ impl ThreadPool {
     }
 }
 
+#[allow(dead_code)]
 struct Worker {
     id: usize,
     thread: thread::JoinHandle<()>,
@@ -44,6 +45,7 @@ impl Worker {
         let thread = thread::spawn(move || loop {
             if let Ok(lock) = receiver.lock() {
                 if let Ok(job) = lock.recv() {
+                    drop(lock);
                     info!("Executing job in Worker {id}");
                     job();
                 } else {
@@ -58,6 +60,7 @@ impl Worker {
     }
 }
 
+#[allow(dead_code)]
 pub struct ThreadPool {
     workers: Vec<Worker>,
     sender: mpsc::Sender<Job>,
