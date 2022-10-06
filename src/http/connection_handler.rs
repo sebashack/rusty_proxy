@@ -11,6 +11,7 @@ pub fn http_handler(mut stream: TcpStream, addr_queue: AddrQueue) {
     if let Ok(lock) = addr_queue.poller.lock() {
         if let Ok((addr, port)) = lock.recv() {
             drop(lock);
+            addr_queue.pusher.send((addr, port));
         } else {
             error!("http_handler: Failed to poll addr");
         }
