@@ -50,7 +50,7 @@ impl RequestHeader {
 #[derive(Debug)]
 pub struct RequestLine {
     pub method: Method,
-    pub path: String,
+    pub uri: String,
     pub version: String,
 }
 
@@ -149,7 +149,7 @@ fn parse_request_line(input: &str) -> Result<RequestLine> {
     let (s, rest) = rest
         .split_once(' ')
         .context(format!("Invalid request-line: {}", input))?;
-    let path = parse_uri(s)?;
+    let uri = parse_uri(s)?;
     let (s, _) = rest
         .split_once("\r\n")
         .context(format!("Invalid request-line: {}", input))?;
@@ -157,7 +157,7 @@ fn parse_request_line(input: &str) -> Result<RequestLine> {
 
     Ok(RequestLine {
         method: method,
-        path: path.to_string(),
+        uri: uri.to_string(),
         version: version.to_string(),
     })
 }
