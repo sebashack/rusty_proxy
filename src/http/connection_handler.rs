@@ -6,9 +6,10 @@ use std::net::TcpStream;
 use crate::concurrent::addr_queue::AddrQueue;
 use crate::http::request::Request;
 
-pub fn http_handler(mut stream: TcpStream, addr_queue: AddrQueue) {
-    let mut req = Request::from_tcp_stream(&mut stream).unwrap();
+pub fn http_handler(mut client_stream: TcpStream, addr_queue: AddrQueue) {
+    let mut req = Request::from_tcp_stream(&mut client_stream).unwrap();
 
+    // TODO: Remove this
     println!("{:?}", req);
 
     if let Ok(lock) = addr_queue.poller.lock() {
@@ -18,15 +19,20 @@ pub fn http_handler(mut stream: TcpStream, addr_queue: AddrQueue) {
             addr_queue.pusher.send((addr, port)).unwrap();
 
             let addr_port = format!("{addr_}:{port}");
-            if let Ok(mut stream) = TcpStream::connect(addr_port.clone()) {
+            if let Ok(mut service_stream) = TcpStream::connect(addr_port.clone()) {
                 req.header.remove_header("transfer-encoding".to_string());
                 req.header.remove_header("accept-encoding".to_string());
                 req.header.remove_header("content-encoding".to_string());
                 req.header.insert_header("host".to_string(), addr_port);
 
-                let mut writer = BufWriter::new(&mut stream);
+                let mut writer = BufWriter::new(&mut service_stream);
                 writer.write_all(req.to_buffer().as_slice());
                 writer.flush().unwrap();
+
+                // TODO: Parse response and reply to client.
+
+                let response = "HTTP/1.1 200 OK\r\n\r\n";
+                client_stream.write_all(response.as_bytes()).unwrap();
             }
         } else {
             error!("http_handler: Failed to poll addr");
@@ -34,7 +40,4 @@ pub fn http_handler(mut stream: TcpStream, addr_queue: AddrQueue) {
     } else {
         error!("http_handler: Failed to get lock");
     }
-
-    let response = "HTTP/1.1 200 OK\r\n\r\n";
-    stream.write_all(response.as_bytes()).unwrap();
 }
