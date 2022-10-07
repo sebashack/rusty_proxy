@@ -1,10 +1,11 @@
 use log::error;
 use std::io::prelude::*;
+use std::io::BufReader;
 use std::io::BufWriter;
 use std::net::TcpStream;
 
 use crate::concurrent::addr_queue::AddrQueue;
-use crate::http::request::Request;
+use crate::http::{request::Request, response::Response};
 
 pub fn http_handler(mut client_stream: TcpStream, addr_queue: AddrQueue) {
     let mut req = Request::from_tcp_stream(&mut client_stream).unwrap();
