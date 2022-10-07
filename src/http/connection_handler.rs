@@ -1,5 +1,6 @@
 use log::error;
 use std::io::prelude::*;
+use std::io::BufWriter;
 use std::net::TcpStream;
 
 use crate::concurrent::addr_queue::AddrQueue;
@@ -23,7 +24,9 @@ pub fn http_handler(mut stream: TcpStream, addr_queue: AddrQueue) {
                 req.header.remove_header("content-encoding".to_string());
                 req.header.insert_header("host".to_string(), addr_port);
 
-                stream.write_all(req.to_buffer().as_slice());
+                let mut writer = BufWriter::new(&mut stream);
+                writer.write_all(req.to_buffer().as_slice());
+                writer.flush().unwrap();
             }
         } else {
             error!("http_handler: Failed to poll addr");
