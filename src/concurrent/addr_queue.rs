@@ -1,4 +1,3 @@
-use log::{error, info};
 use std::{
     sync::{
         mpsc::{self, Receiver, SyncSender},
@@ -20,7 +19,7 @@ impl AddrQueue {
         let (pusher, receiver) = mpsc::sync_channel(addrs.len());
 
         for addr in addrs {
-            pusher.send(addr);
+            pusher.send(addr).unwrap();
         }
 
         let poller = Arc::new(Mutex::new(receiver));

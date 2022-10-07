@@ -4,7 +4,7 @@ use std::io::{prelude::*, BufReader};
 use std::net::TcpStream;
 use url::Url;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Method {
     Options,
     Get,
@@ -16,9 +16,24 @@ pub enum Method {
     Connect,
 }
 
+impl Method {
+    fn to_buffer(&self) -> &[u8] {
+        match &self {
+            Method::Options => "OPTIONS".as_bytes(),
+            Method::Get => "GET".as_bytes(),
+            Method::Head => "HEAD".as_bytes(),
+            Method::Post => "POST".as_bytes(),
+            Method::Put => "PUT".as_bytes(),
+            Method::Delete => "DELETE".as_bytes(),
+            Method::Trace => "TRACE".as_bytes(),
+            Method::Connect => "CONNECT".as_bytes(),
+        }
+    }
+}
+
 type Headers = HashMap<String, String>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Request {
     pub header: RequestHeader,
     pub body: Vec<u8>,
@@ -29,9 +44,16 @@ impl Request {
         let (header, body) = split_req(stream)?;
         Ok(Request { header, body })
     }
+
+    pub fn to_buffer(&self) -> Vec<u8> {
+        let mut buffer = self.header.to_buffer();
+        let mut body = self.body.clone();
+        buffer.append(&mut body);
+        buffer
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RequestHeader {
     pub metadata: RequestLine,
     pub headers: Headers,
@@ -45,13 +67,47 @@ impl RequestHeader {
             None
         }
     }
+
+    pub fn insert_header(&mut self, k: String, v: String) {
+        self.headers.insert(k, v);
+    }
+
+    pub fn remove_header(&mut self, k: String) {
+        self.headers.remove(&k);
+    }
+
+    fn to_buffer(&self) -> Vec<u8> {
+        let mut buffer = self.metadata.to_buffer();
+        for (key, value) in self.headers.iter() {
+            let mut element = format!("{key}:{value}\r\n").as_bytes().to_vec();
+            buffer.append(&mut element);
+        }
+
+        buffer.push(0x0D);
+        buffer.push(0x0A);
+
+        buffer
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RequestLine {
     pub method: Method,
     pub uri: String,
     pub version: String,
+}
+
+impl RequestLine {
+    fn to_buffer(&self) -> Vec<u8> {
+        let method = self.method.to_buffer();
+        let uri = self.uri.as_bytes();
+        let version = self.version.as_bytes();
+        let sp = [' ' as u8];
+        let crlf = [0x0D, 0x0A];
+        let line = [method, &sp, uri, &sp, version, &crlf].concat();
+
+        line.to_vec()
+    }
 }
 
 fn split_req(mut stream: &TcpStream) -> Result<(RequestHeader, Vec<u8>)> {
