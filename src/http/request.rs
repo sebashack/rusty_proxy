@@ -1,7 +1,7 @@
 use crate::http::headers::{parse_headers, parse_version};
 use anyhow::{Context, Error, Result};
 use std::collections::HashMap;
-use std::io::{prelude::*, BufReader};
+use std::io::{prelude::*, BufReader, BufWriter};
 use std::net::TcpStream;
 use url::Url;
 
@@ -41,12 +41,29 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn from_tcp_stream(stream: &mut TcpStream) -> Result<Self> {
+    pub fn read(stream: &TcpStream) -> Result<Self> {
         let (header, body) = split_req(stream)?;
         Ok(Request { header, body })
     }
 
-    pub fn to_buffer(&self) -> Vec<u8> {
+    pub fn write(&mut self, stream: &TcpStream, host: String) -> Result<()> {
+        self.header.remove_header("transfer-encoding".to_string());
+        self.header.remove_header("accept-encoding".to_string());
+        self.header.remove_header("content-encoding".to_string());
+        self.header.insert_header("host".to_string(), host);
+
+        let mut writer = BufWriter::new(stream);
+        writer
+            .write_all(self.to_buffer().as_slice())
+            .context(format!(
+                "Write error: Failed to write all bytes to TcpStream"
+            ))?;
+        writer
+            .flush()
+            .context(format!("Write error: Failed to flush TcpStream"))
+    }
+
+    fn to_buffer(&self) -> Vec<u8> {
         let mut buffer = self.header.to_buffer();
         let mut body = self.body.clone();
         buffer.append(&mut body);

@@ -1,6 +1,6 @@
 use anyhow::{Context, Error, Result};
 use std::collections::HashMap;
-use std::io::{prelude::*, BufReader};
+use std::io::{prelude::*, BufReader, BufWriter};
 use std::net::TcpStream;
 use url::Url;
 
@@ -114,12 +114,24 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn from_tcp_stream(stream: &mut TcpStream) -> Result<Self> {
+    pub fn read(stream: &TcpStream) -> Result<Self> {
         let (header, body) = split_res(stream)?;
         Ok(Response { header, body })
     }
 
-    pub fn to_buffer(&self) -> Vec<u8> {
+    pub fn write(&mut self, stream: &TcpStream) -> Result<()> {
+        let mut writer = BufWriter::new(stream);
+        writer
+            .write_all(self.to_buffer().as_slice())
+            .context(format!(
+                "Write error: Failed to write all bytes to TcpStream"
+            ))?;
+        writer
+            .flush()
+            .context(format!("Write error: Failed to flush TcpStream"))
+    }
+
+    fn to_buffer(&self) -> Vec<u8> {
         let mut buffer = self.header.to_buffer();
         let mut body = self.body.clone();
         buffer.append(&mut body);
@@ -150,7 +162,7 @@ impl ResponseHeader {
         self.headers.remove(&k);
     }
 
-    fn to_buffer(&self) -> Vec<u8> {
+    pub fn to_buffer(&self) -> Vec<u8> {
         let mut buffer = self.status.to_buffer();
         for (key, value) in self.headers.iter() {
             let mut element = format!("{key}:{value}\r\n").as_bytes().to_vec();

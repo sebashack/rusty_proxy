@@ -1,9 +1,6 @@
-use std::{
-    sync::{
-        mpsc::{self, Receiver, SyncSender},
-        Arc, Mutex,
-    },
-    thread,
+use std::sync::{
+    mpsc::{self, Receiver, SyncSender},
+    Arc, Mutex,
 };
 
 type Addr = String;
