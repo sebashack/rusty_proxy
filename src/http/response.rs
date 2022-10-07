@@ -114,6 +114,21 @@ pub struct Response {
 }
 
 impl Response {
+    pub fn response400() -> Self {
+        let status = StatusLine {
+            version: "HTTP/1.1".to_string(),
+            code: Code::Code400,
+            reason: "Malformed request".to_string(),
+        };
+        Response {
+            header: ResponseHeader {
+                status,
+                headers: HashMap::new(),
+            },
+            body: Vec::new(),
+        }
+    }
+
     pub fn read(stream: &TcpStream) -> Result<Self> {
         let (header, body) = split_res(stream)?;
         Ok(Response { header, body })

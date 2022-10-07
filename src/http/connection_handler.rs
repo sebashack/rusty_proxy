@@ -19,7 +19,7 @@ pub fn http_handler(client_stream: TcpStream, addr_queue: AddrQueue) {
 
                         match Response::read(&service_stream) {
                             Ok(mut res) => res.write(&client_stream).unwrap(),
-                            Err(_) => {}
+                            Err(_) => error!("Failed to parse server response"),
                         };
                     }
                 } else {
@@ -29,6 +29,6 @@ pub fn http_handler(client_stream: TcpStream, addr_queue: AddrQueue) {
                 error!("http_handler: Failed to get lock");
             }
         }
-        Err(_) => {}
+        Err(_) => Response::response400().write(&client_stream).unwrap(),
     }
 }
