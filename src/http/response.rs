@@ -134,16 +134,20 @@ impl Response {
         Ok(Response { header, body })
     }
 
-    pub fn write(&mut self, stream: &TcpStream) -> Result<()> {
+    pub fn write(&mut self, stream: &TcpStream) {
         let mut writer = BufWriter::new(stream);
-        writer
-            .write_all(self.to_buffer().as_slice())
-            .context(format!(
-                "Write error: Failed to write all bytes to TcpStream"
-            ))?;
-        writer
-            .flush()
-            .context(format!("Write error: Failed to flush TcpStream"))
+        let data = self.to_buffer();
+        let size = data.len();
+        let buff_size = if size < 2048 { size } else { size / 1024 };
+
+        for chunk in data.chunks(buff_size) {
+            let mut pos = 0;
+            while pos < chunk.len() {
+                let bytes_written = writer.write(&chunk[pos..]).unwrap();
+                pos += bytes_written;
+                writer.flush().unwrap();
+            }
+        }
     }
 
     fn to_buffer(&self) -> Vec<u8> {
@@ -347,7 +351,6 @@ fn parse_code(input: &str) -> Result<Code> {
 }
 
 fn parse_reason<'a>(input: &'a str) -> Result<&str> {
-    //parse text?
     let prefix = if input.starts_with("/") {
         "http://host"
     } else {

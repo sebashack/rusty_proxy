@@ -15,10 +15,10 @@ pub fn http_handler(client_stream: TcpStream, addr_queue: AddrQueue) {
 
                     let host = format!("{addr_}:{port}");
                     if let Ok(service_stream) = TcpStream::connect(host.clone()) {
-                        req.write(&service_stream, host).unwrap();
+                        req.write(&service_stream, host);
 
                         match Response::read(&service_stream) {
-                            Ok(mut res) => res.write(&client_stream).unwrap(),
+                            Ok(mut res) => res.write(&client_stream),
                             Err(_) => error!("Failed to parse server response"),
                         };
                     }
@@ -29,6 +29,6 @@ pub fn http_handler(client_stream: TcpStream, addr_queue: AddrQueue) {
                 error!("http_handler: Failed to get lock");
             }
         }
-        Err(_) => Response::response400().write(&client_stream).unwrap(),
+        Err(_) => Response::response400().write(&client_stream),
     }
 }
