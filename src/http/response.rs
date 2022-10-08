@@ -2,8 +2,6 @@ use anyhow::{Context, Error, Result};
 use std::collections::HashMap;
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::net::TcpStream;
-use url::Url;
-
 use crate::http::headers;
 
 #[derive(Debug, Clone)]
@@ -288,7 +286,7 @@ fn parse_status_line(input: &str) -> Result<StatusLine> {
     let (s, _) = rest
         .split_once("\r\n")
         .context(format!("Invalid request-line: {}", input))?;
-    let reason = parse_reason(s)?;
+    let reason = s;
 
     Ok(StatusLine {
         version: version.to_string(),
@@ -347,19 +345,5 @@ fn parse_code(input: &str) -> Result<Code> {
             '5' => Ok(Code::Code500),
             _ => Err(Error::msg(format!("Invalid method: {:?}", input))),
         },
-    }
-}
-
-fn parse_reason<'a>(input: &'a str) -> Result<&str> {
-    let prefix = if input.starts_with("/") {
-        "http://host"
-    } else {
-        ""
-    };
-
-    if let Ok(_) = Url::parse(format!("{}{}", prefix, input).as_str()) {
-        Ok(input)
-    } else {
-        Err(Error::msg(format!("Invalid request-uri: {:?}", input)))
     }
 }
