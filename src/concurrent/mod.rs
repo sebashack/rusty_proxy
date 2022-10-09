@@ -1,2 +1,2 @@
-pub mod addr_queue;
+pub mod ccfifo_queue;
 pub mod pool;
