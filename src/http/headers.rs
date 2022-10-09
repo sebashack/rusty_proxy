@@ -30,8 +30,8 @@ fn parse_header(input: &str) -> Result<(String, &str)> {
 }
 
 pub fn parse_version(input: &str) -> Result<&str> {
-    if input == "HTTP/1.1" {
-        Ok("1.1")
+    if input == "HTTP/1.1" || input == "HTTP-1.1" {
+        Ok("HTTP/1.1")
     } else {
         Err(Error::msg(format!("Unsupported version: {:?}", input)))
     }

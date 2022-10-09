@@ -1,8 +1,8 @@
+use crate::http::headers;
 use anyhow::{Context, Error, Result};
 use std::collections::HashMap;
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::net::TcpStream;
-use crate::http::headers;
 
 #[derive(Debug, Clone)]
 pub enum Code {
