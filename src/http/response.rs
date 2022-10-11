@@ -1,4 +1,5 @@
-use crate::http::headers;
+use crate::cache::io::CacheFile;
+use crate::http::headers::{self, Headers};
 use anyhow::{Context, Error, Result};
 use std::collections::HashMap;
 use std::io::{prelude::*, BufReader, BufWriter};
@@ -103,28 +104,55 @@ impl Code {
     }
 }
 
-type Headers = HashMap<String, String>;
-
 #[derive(Debug, Clone)]
 pub struct Response {
     pub header: ResponseHeader,
     pub body: Vec<u8>,
 }
 
+static MAX_CACHE_SIZE_MB: u32 = 20;
 impl Response {
+    pub fn from_cache_file(file: CacheFile) -> Self {
+        let status = StatusLine {
+            version: "HTTP/1.1".to_string(),
+            code: Code::Code200,
+            reason: "OK".to_string(),
+        };
+        let mut header = ResponseHeader::new(status);
+
+        if let Some(content_type) = file.metadata.content_type {
+            header.insert_header("content-type".to_string(), content_type);
+        }
+        header.insert_header(
+            "content-length".to_string(),
+            file.metadata.content_length.to_string(),
+        );
+
+        Response {
+            header,
+            body: file.content_data,
+        }
+    }
+
     pub fn response400() -> Self {
         let status = StatusLine {
             version: "HTTP/1.1".to_string(),
             code: Code::Code400,
             reason: "Malformed request".to_string(),
         };
+        let header = ResponseHeader::new(status);
+
         Response {
-            header: ResponseHeader {
-                status,
-                headers: HashMap::new(),
-            },
+            header,
             body: Vec::new(),
         }
+    }
+
+    pub fn get_content_type(&self) -> Option<String> {
+        self.header
+            .headers
+            .get(&"content-type".to_string())
+            .map(|s| s.clone())
     }
 
     pub fn read(stream: &TcpStream) -> Result<Self> {
@@ -133,6 +161,9 @@ impl Response {
     }
 
     pub fn write(&mut self, stream: &TcpStream) {
+        self.header
+            .insert_header("server".to_string(), "rusty-proxy".to_string());
+
         let mut writer = BufWriter::new(stream);
         let data = self.to_buffer();
         let size = data.len();
@@ -146,6 +177,27 @@ impl Response {
                 writer.flush().unwrap();
             }
         }
+    }
+
+    pub fn is_cacheable(&self) -> bool {
+        let is_valid_status_code = match self.header.status.code {
+            Code::Code200
+            | Code::Code201
+            | Code::Code202
+            | Code::Code203
+            | Code::Code204
+            | Code::Code205
+            | Code::Code206 => true,
+            _ => false,
+        };
+
+        self.body_size_mb() <= MAX_CACHE_SIZE_MB
+            && is_valid_status_code
+            && headers::is_cacheable_content_type(&self.header.headers)
+    }
+
+    pub fn body_size_mb(&self) -> u32 {
+        (self.body.len() / 1048576) as u32
     }
 
     fn to_buffer(&self) -> Vec<u8> {
@@ -163,6 +215,13 @@ pub struct ResponseHeader {
 }
 
 impl ResponseHeader {
+    pub fn new(status: StatusLine) -> Self {
+        let mut headers = HashMap::new();
+        headers.insert("server".to_string(), "rusty-proxy".to_string());
+
+        ResponseHeader { status, headers }
+    }
+
     pub fn get_content_length(&self) -> Option<usize> {
         if let Some(h) = self.headers.get("content-length") {
             h.parse().ok()

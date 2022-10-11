@@ -1,11 +1,10 @@
-use crate::http::headers::{parse_headers, parse_version};
+use crate::http::headers::{self, Headers};
 use anyhow::{Context, Error, Result};
-use std::collections::HashMap;
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::net::TcpStream;
 use url::Url;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Method {
     Options,
     Get,
@@ -31,8 +30,6 @@ impl Method {
         }
     }
 }
-
-type Headers = HashMap<String, String>;
 
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -188,7 +185,7 @@ pub fn parse_request_header(input: &str) -> Result<RequestHeader> {
         .split_once("\r\n")
         .context(format!("Invalid request headers: {}", input))?;
     let metadata = parse_request_line(format!("{s}\r\n").as_str())?;
-    let headers = parse_headers(rest)?;
+    let headers = headers::parse_headers(rest)?;
 
     Ok(RequestHeader { headers, metadata })
 }
@@ -205,7 +202,7 @@ fn parse_request_line(input: &str) -> Result<RequestLine> {
     let (s, _) = rest
         .split_once("\r\n")
         .context(format!("Invalid request-line: {}", input))?;
-    let version = parse_version(s)?;
+    let version = headers::parse_version(s)?;
 
     Ok(RequestLine {
         method: method,

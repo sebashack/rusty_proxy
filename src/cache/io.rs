@@ -9,11 +9,16 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 pub struct FileMetadata {
     timestamp: Duration,
     ttl_secs: Duration,
-    content_length: u64,
+    pub content_type: Option<String>,
+    pub content_length: u64,
 }
 
 impl FileMetadata {
-    pub fn new(ttl: u64, content_length: u64) -> Result<FileMetadata> {
+    pub fn new(
+        ttl: u64,
+        content_length: u64,
+        content_type: Option<String>,
+    ) -> Result<FileMetadata> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .context(format!("Failed to get system time"))?;
@@ -21,22 +26,30 @@ impl FileMetadata {
             timestamp,
             ttl_secs: Duration::from_secs(ttl),
             content_length,
+            content_type,
         })
     }
 
-    fn from_buffer(buffer: &[u8]) -> Result<FileMetadata> {
-        assert!(buffer.len() == 16);
+    fn from_buffer(buffer: &[u8], content_type: String) -> FileMetadata {
+        assert!(buffer.len() == std::mem::size_of::<u64>() * 3);
+
         let (first, rest) = buffer.split_at(std::mem::size_of::<u64>());
         let (second, third) = rest.split_at(std::mem::size_of::<u64>());
         let timestamp = Duration::from_secs(u64::from_le_bytes(first.try_into().unwrap()));
         let ttl_secs = Duration::from_secs(u64::from_le_bytes(second.try_into().unwrap()));
-        let content_length = u64::from_le_bytes(second.try_into().unwrap());
+        let content_length = u64::from_le_bytes(third.try_into().unwrap());
+        let content_type = if content_type == "" {
+            None
+        } else {
+            Some(content_type.trim().to_string())
+        };
 
-        Ok(FileMetadata {
+        FileMetadata {
+            content_type,
             timestamp,
             ttl_secs,
             content_length,
-        })
+        }
     }
 }
 
@@ -48,12 +61,23 @@ impl FileMetadata {
             return false;
         }
     }
+
+    fn size_bytes(&self) -> u64 {
+        let a = if let Some(ct) = &self.content_type {
+            ct.as_bytes().len() + 1
+        } else {
+            1
+        };
+        let b = std::mem::size_of::<u64>() * 3;
+
+        return (a + b) as u64;
+    }
 }
 
 pub struct CacheFile {
-    metadata: FileMetadata,
-    path: PathBuf,
-    content_data: Vec<u8>,
+    pub metadata: FileMetadata,
+    pub path: PathBuf,
+    pub content_data: Vec<u8>,
 }
 
 impl CacheFile {
@@ -62,11 +86,12 @@ impl CacheFile {
         content_length: u64,
         path: PathBuf,
         content_data: Vec<u8>,
+        content_type: Option<String>,
     ) -> Result<CacheFile> {
         if path.as_path().is_dir() {
             return Err(Error::msg("Cache path is directory"));
         } else {
-            let metadata = FileMetadata::new(ttl, content_length)?;
+            let metadata = FileMetadata::new(ttl, content_length, content_type)?;
             return Ok(CacheFile {
                 metadata,
                 path,
@@ -75,22 +100,28 @@ impl CacheFile {
         }
     }
 
-    pub fn read_header(path: PathBuf) -> Result<FileMetadata> {
-        let mut file =
+    pub fn read_header(path: &PathBuf) -> Result<FileMetadata> {
+        let file =
             File::open(path.as_path()).context(format!("Failed to read file header {path:?}"))?;
-        let mut buffer = [0u8; std::mem::size_of::<u64>() * 2];
-        file.read_exact(&mut buffer)
+
+        let mut reader = BufReader::new(file);
+        let mut content_type = String::new();
+        let mut buffer = [0u8; std::mem::size_of::<u64>() * 3];
+
+        reader
+            .read_line(&mut content_type)
+            .context(format!("Failed to read header from {path:?}"))?;
+        reader
+            .read_exact(&mut buffer)
             .context(format!("Failed to read header from {path:?}"))?;
 
-        FileMetadata::from_buffer(&buffer)
+        Ok(FileMetadata::from_buffer(&buffer, content_type))
     }
 
     pub fn read(path: PathBuf, metadata: FileMetadata) -> Result<CacheFile> {
         let file = File::open(path.as_path()).context(format!("Failed to read file {path:?}"))?;
         let mut reader = BufReader::new(file);
-        reader
-            .seek(SeekFrom::Start((std::mem::size_of::<u64>() * 2) as u64))
-            .unwrap();
+        reader.seek(SeekFrom::Start(metadata.size_bytes())).unwrap();
 
         let data_size = metadata.content_length;
         let buff_size = if data_size < 2048 {
@@ -132,30 +163,22 @@ impl CacheFile {
         fs::create_dir_all(parent).context(format!("Failed to create parent dir {parent:?}"))?;
 
         let mut file = File::create(path).context(format!("Failed to create file {path:?}"))?;
-        let timestamp_buff: [u8; 8] = self
-            .metadata
-            .timestamp
-            .as_secs()
-            .to_le_bytes()
-            .try_into()
-            .unwrap();
-        let ttl_buff: [u8; 8] = self
-            .metadata
-            .ttl_secs
-            .as_secs()
-            .to_le_bytes()
-            .try_into()
-            .unwrap();
 
-        let len_buff: [u8; 8] = self
-            .metadata
-            .content_length
-            .to_le_bytes()
-            .try_into()
-            .unwrap();
+        let ctype_buff = if let Some(ct) = &self.metadata.content_type {
+            let mut ct = ct.clone().trim().to_string();
+            ct.push('\n');
+            ct.as_bytes().to_vec()
+        } else {
+            let mut ct = String::new();
+            ct.push('\n');
+            ct.as_bytes().to_vec()
+        };
+        let timestamp_buff = self.metadata.timestamp.as_secs().to_le_bytes().to_vec();
+        let ttl_buff = self.metadata.ttl_secs.as_secs().to_le_bytes().to_vec();
+        let len_buff = self.metadata.content_length.to_le_bytes().to_vec();
 
         // Write header
-        let header_buff = [timestamp_buff, ttl_buff, len_buff].concat();
+        let header_buff = [ctype_buff, timestamp_buff, ttl_buff, len_buff].concat();
         let mut pos = 0;
         while pos < header_buff.len() {
             if let Ok(bytes_written) = file.write(&header_buff[pos..]) {
@@ -181,8 +204,14 @@ impl CacheFile {
 
         Ok(())
     }
+}
 
-    pub fn delete(path: PathBuf) -> Result<()> {
-        fs::remove_file(path.as_path()).context(format!("Failed to delete file at {path:?}"))
-    }
+pub fn mk_file_path(cache_dir: &PathBuf, uri: String) -> PathBuf {
+    let mut path = cache_dir.clone();
+    path.push(uri);
+    path
+}
+
+pub fn delete_cache_file(path: PathBuf) -> Result<()> {
+    fs::remove_file(path.as_path()).context(format!("Failed to delete file at {path:?}"))
 }
