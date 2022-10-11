@@ -1,10 +1,10 @@
 use anyhow::{Context, Error, Result};
-use std::cell::RefCell;
 use std::fs::{self, File};
 use std::io::SeekFrom;
 use std::io::{prelude::*, BufReader};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use uuid::Uuid;
 
 pub struct FileMetadata {
     timestamp: Duration,
@@ -123,47 +123,31 @@ impl CacheFile {
         let mut reader = BufReader::new(file);
         reader.seek(SeekFrom::Start(metadata.size_bytes())).unwrap();
 
-        let data_size = metadata.content_length;
-        let buff_size = if data_size < 2048 {
-            data_size as usize
+        let mut content_data: Vec<u8> = Vec::with_capacity(metadata.content_length as usize);
+        if let Ok(_) = reader.read_to_end(&mut content_data) {
+            Ok(CacheFile {
+                metadata,
+                path,
+                content_data,
+            })
         } else {
-            data_size as usize / 1024
-        };
-        let buffer = vec![0u8; buff_size];
-        let mut buffer = buffer.clone();
-        let buffer = RefCell::new(buffer.as_mut_slice());
-        let mut content_data: Vec<u8> = Vec::new();
-        let mut bytes_read = 0;
-
-        while bytes_read < data_size {
-            let mut pos = 0;
-            while pos < buff_size {
-                if let Ok(buff_bytes_read) = reader.read(&mut buffer.borrow_mut()[pos..]) {
-                    pos += buff_bytes_read;
-                } else {
-                    return Err(Error::msg(format!("Failed to read file {path:?}")));
-                }
-            }
-
-            bytes_read += pos as u64;
-            buffer.borrow().iter().for_each(|b| content_data.push(*b));
+            Err(Error::msg(format!("Failed to read cache file")))
         }
-
-        Ok(CacheFile {
-            metadata,
-            path,
-            content_data,
-        })
     }
 
     pub fn write(&self) -> Result<()> {
-        let path = self.path.as_path();
-        let parent = path.parent().context(format!("Failed to get parent dir"))?;
+        let ext = Uuid::new_v4();
+        let mut path_tmp = self.path.clone();
+        path_tmp.set_extension(ext.to_string());
+
+        let parent = path_tmp
+            .parent()
+            .context(format!("Failed to get parent dir"))?;
 
         fs::create_dir_all(parent).context(format!("Failed to create parent dir {parent:?}"))?;
 
-        let mut file = File::create(path).context(format!("Failed to create file {path:?}"))?;
-
+        let mut file =
+            File::create(&path_tmp).context(format!("Failed to create file {path_tmp:?}"))?;
         let ctype_buff = if let Some(ct) = &self.metadata.content_type {
             let mut ct = ct.clone().trim().to_string();
             ct.push('\n');
@@ -185,7 +169,9 @@ impl CacheFile {
                 pos += bytes_written;
                 file.flush().unwrap();
             } else {
-                return Err(Error::msg(format!("Failed to write file header {path:?}")));
+                return Err(Error::msg(format!(
+                    "Failed to write file header {path_tmp:?}"
+                )));
             }
         }
 
@@ -198,9 +184,11 @@ impl CacheFile {
                 pos += bytes_written;
                 file.flush().unwrap();
             } else {
-                return Err(Error::msg(format!("Failed to write file {path:?}")));
+                return Err(Error::msg(format!("Failed to write file {path_tmp:?}")));
             }
         }
+
+        std::fs::rename(&path_tmp.as_path(), &self.path.as_path()).unwrap();
 
         Ok(())
     }
@@ -208,7 +196,13 @@ impl CacheFile {
 
 pub fn mk_file_path(cache_dir: &PathBuf, uri: String) -> PathBuf {
     let mut path = cache_dir.clone();
-    path.push(uri);
+
+    if uri.starts_with("/") {
+        path.push(uri.strip_prefix("/").unwrap());
+    } else {
+        path.push(uri);
+    }
+
     path
 }
 

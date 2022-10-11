@@ -10,9 +10,9 @@ use rusty_proxy::http::tcp::{listen_connections, mk_tcp_listener};
 fn main() {
     env_logger::init();
     let cache_dir = Path::new("/home/sebastian/university/networking/rusty_proxy/proxy_cache");
-    let pool = ThreadPool::new(5);
+    let pool = ThreadPool::new(1);
     let addrs = vec![("127.0.0.1".to_string(), 3000)];
-    let cache_ttl = 30;
+    let cache_ttl = 60;
     let addr_queue = CCFifoQueue::new(addrs);
     let (cache_sender, cache_receiver) = mpsc::channel();
     let listener = mk_tcp_listener("127.0.0.1".to_string(), 7878).unwrap();

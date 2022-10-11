@@ -1,3 +1,4 @@
 /target
 dist
 toy-server/node_modules
+proxy_cache

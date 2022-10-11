@@ -1,4 +1,4 @@
-use log::{error, warn};
+use log::{error, info, warn};
 use std::net::TcpStream;
 use std::sync::mpsc::Sender;
 
@@ -48,6 +48,7 @@ pub fn http_handler(
                             if let Ok(metadata) = CacheFile::read_header(&file_path) {
                                 if !metadata.is_expired() {
                                     if let Ok(cache_file) = CacheFile::read(file_path, metadata) {
+                                        info!("Retrieving resource from cache");
                                         let mut res = Response::from_cache_file(cache_file);
                                         res.write(&client_stream)
                                     } else {
@@ -85,6 +86,7 @@ fn proxy_pass(
     cache_ttl: u64,
     is_get_req: bool,
 ) {
+    info!("Proxy passing");
     let host = format!("{addr}:{port}");
     if let Ok(service_stream) = TcpStream::connect(host.clone()) {
         req.write(&service_stream, host);
