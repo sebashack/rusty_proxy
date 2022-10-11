@@ -2,6 +2,7 @@ use std::path::Path;
 
 use std::sync::mpsc;
 
+use rusty_proxy::cache::writer::CacheWriter;
 use rusty_proxy::concurrent::ccfifo_queue::CCFifoQueue;
 use rusty_proxy::concurrent::pool::ThreadPool;
 use rusty_proxy::http::tcp::{listen_connections, mk_tcp_listener};
@@ -15,6 +16,8 @@ fn main() {
     let addr_queue = CCFifoQueue::new(addrs);
     let (cache_sender, cache_receiver) = mpsc::channel();
     let listener = mk_tcp_listener("127.0.0.1".to_string(), 7878).unwrap();
+
+    CacheWriter::run(cache_receiver);
     listen_connections(
         &listener,
         &pool,

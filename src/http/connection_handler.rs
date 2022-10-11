@@ -74,6 +74,7 @@ pub fn http_handler(
     }
 }
 
+#[inline(always)]
 fn proxy_pass(
     addr: String,
     port: u16,
