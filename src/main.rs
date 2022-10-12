@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use mt_logger::{mt_new, Level, OutputStream};
 use std::sync::mpsc;
 
 use rusty_proxy::cache::cleaner::CacheCleaner;
@@ -9,6 +10,7 @@ use rusty_proxy::concurrent::pool::ThreadPool;
 use rusty_proxy::http::tcp::{listen_connections, mk_tcp_listener};
 
 fn main() {
+    mt_new!(None, Level::Info, OutputStream::File);
     env_logger::init();
     let cache_dir = Path::new("/home/sebastian/university/networking/rusty_proxy/proxy_cache");
     let pool = ThreadPool::new(5);

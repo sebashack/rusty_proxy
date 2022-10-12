@@ -22,6 +22,7 @@ pub fn http_handler(
 ) {
     match Request::read(&client_stream) {
         Ok(mut req) => {
+            req.header.pretty_log();
             if let Ok(lock) = addr_queue.poller.lock() {
                 if let Ok((addr, port)) = lock.recv() {
                     drop(lock);
@@ -93,6 +94,7 @@ fn proxy_pass(
 
         match Response::read(&service_stream) {
             Ok(mut res) => {
+                res.header.pretty_log();
                 if is_get_req && res.is_cacheable() {
                     if let Ok(cache_file) = CacheFile::new(
                         cache_ttl,

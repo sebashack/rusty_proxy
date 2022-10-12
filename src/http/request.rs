@@ -1,8 +1,11 @@
-use crate::http::headers::{self, Headers};
 use anyhow::{Context, Error, Result};
+use log::info;
+use mt_logger::{mt_log, Level};
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::net::TcpStream;
 use url::Url;
+
+use crate::http::headers::{self, Headers};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Method {
@@ -93,6 +96,23 @@ impl RequestHeader {
 
     pub fn remove_header(&mut self, k: String) {
         self.headers.remove(&k);
+    }
+
+    pub fn pretty_log(&self) {
+        let req_line_str = String::from_utf8(self.to_buffer()).map(|s| s.replace("\r\n", " "));
+        let mut headers_str = String::new();
+
+        self.headers.iter().for_each(|(k, v)| {
+            let entry = format!("{k}:{v};");
+            headers_str.push_str(entry.as_str());
+        });
+
+        if let Ok(mut req_line_str) = req_line_str {
+            req_line_str.push_str("~~  ");
+            req_line_str.push_str(headers_str.as_str());
+            info!("{}", req_line_str);
+            mt_log!(Level::Info, "{}", req_line_str);
+        }
     }
 
     fn to_buffer(&self) -> Vec<u8> {

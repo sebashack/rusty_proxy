@@ -1,9 +1,12 @@
-use crate::cache::io::CacheFile;
-use crate::http::headers::{self, Headers};
 use anyhow::{Context, Error, Result};
+use log::info;
+use mt_logger::{mt_log, Level};
 use std::collections::HashMap;
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::net::TcpStream;
+
+use crate::cache::io::CacheFile;
+use crate::http::headers::{self, Headers};
 
 #[derive(Debug, Clone)]
 pub enum Code {
@@ -236,6 +239,23 @@ impl ResponseHeader {
 
     pub fn remove_header(&mut self, k: String) {
         self.headers.remove(&k);
+    }
+
+    pub fn pretty_log(&self) {
+        let res_line_str = String::from_utf8(self.to_buffer()).map(|s| s.replace("\r\n", " "));
+        let mut headers_str = String::new();
+
+        self.headers.iter().for_each(|(k, v)| {
+            let entry = format!("{k}:{v};");
+            headers_str.push_str(entry.as_str());
+        });
+
+        if let Ok(mut res_line_str) = res_line_str {
+            res_line_str.push_str("~~  ");
+            res_line_str.push_str(headers_str.as_str());
+            info!("{}", res_line_str);
+            mt_log!(Level::Info, "{}", res_line_str);
+        }
     }
 
     pub fn to_buffer(&self) -> Vec<u8> {

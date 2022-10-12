@@ -1,6 +1,5 @@
-use log::{error, info};
-use std::path::{self, PathBuf};
-use std::sync::mpsc::Receiver;
+use log::info;
+use std::path::PathBuf;
 use std::thread::{self, JoinHandle};
 use std::{fs, time};
 
