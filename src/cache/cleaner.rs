@@ -1,31 +1,27 @@
+use log::{error, info};
 use std::path::PathBuf;
-use std::process::Command;
-use std::process::Stdio;
+use std::sync::mpsc::Receiver;
+use std::thread::{self, JoinHandle};
+use std::time;
 
-// Edit crontab in order to execute command every minute.
-pub fn edit_crontab(user: &str, path: PathBuf) {
-    let mut out = Command::new("crontab")
-        .args(["-u", user, "-l"])
-        .output()
-        .unwrap();
+#[allow(dead_code)]
+pub struct CacheCleaner {
+    thread: JoinHandle<()>,
+}
 
-    if out.status.success() {
-        let mut current_crontab = String::from_utf8(out.stdout).unwrap();
-        let new_cronrule = format!("* * * * * {}", path.as_os_str().to_str().unwrap());
-        current_crontab.push_str(new_cronrule.as_str());
+static SLEEP_TIME: u64 = 60; // secs
 
-        let echo = Command::new("echo")
-            .arg(current_crontab)
-            .stdout(Stdio::piped())
-            .spawn()
-            .unwrap();
+impl CacheCleaner {
+    pub fn run(cache_dir: PathBuf) -> Self {
+        let one_min = time::Duration::from_secs(SLEEP_TIME);
+        let thread = thread::spawn(move || loop {
+            info!("Cleaning cache ...");
 
-        let outo = Command::new("crontab")
-            .args(["-u", user, "-"])
-            .stdin(echo.stdout.unwrap())
-            .output()
-            .unwrap();
-    } else {
-        panic!("Could not list crontab");
+            // TODO: Traverse cache_dir and delete expired files.
+
+            thread::sleep(one_min);
+        });
+
+        CacheCleaner { thread }
     }
 }

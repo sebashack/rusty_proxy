@@ -2,7 +2,7 @@ use std::path::Path;
 
 use std::sync::mpsc;
 
-use rusty_proxy::cache::cleaner::edit_crontab;
+use rusty_proxy::cache::cleaner::CacheCleaner;
 use rusty_proxy::cache::writer::CacheWriter;
 use rusty_proxy::concurrent::ccfifo_queue::CCFifoQueue;
 use rusty_proxy::concurrent::pool::ThreadPool;
@@ -19,6 +19,7 @@ fn main() {
     let listener = mk_tcp_listener("127.0.0.1".to_string(), 7878).unwrap();
 
     CacheWriter::run(cache_receiver);
+    CacheCleaner::run(cache_dir.clone().to_path_buf());
     listen_connections(
         &listener,
         &pool,
@@ -27,6 +28,4 @@ fn main() {
         &cache_sender,
         &addr_queue,
     );
-    //let cmd = Path::new("/home/sebastian/university/networking/cron-playground/task.sh");
-    //edit_crontab("sebastian", cmd.to_path_buf());
 }
