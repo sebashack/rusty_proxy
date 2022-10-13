@@ -47,6 +47,8 @@ fn main() {
                 cache_ttl_secs,
                 &cache_sender,
                 &addr_queue,
+                opts.failure_delay,
+                opts.failure_retries,
             );
         }
         None => println!(

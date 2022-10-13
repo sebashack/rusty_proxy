@@ -151,6 +151,20 @@ impl Response {
         }
     }
 
+    pub fn response500() -> Self {
+        let status = StatusLine {
+            version: "HTTP/1.1".to_string(),
+            code: Code::Code500,
+            reason: "Internal server error".to_string(),
+        };
+        let header = ResponseHeader::new(status);
+
+        Response {
+            header,
+            body: Vec::new(),
+        }
+    }
+
     pub fn get_content_type(&self) -> Option<String> {
         self.header
             .headers

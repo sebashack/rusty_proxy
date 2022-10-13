@@ -23,6 +23,8 @@ pub fn listen_connections(
     cache_ttl: u64,
     cache_sender: &Sender<CacheFile>,
     addr_queue: &CCFifoQueue<Service>,
+    failure_delay: u64,
+    failure_retries: u16,
 ) {
     for conn in listener.incoming() {
         match conn {
@@ -30,7 +32,17 @@ pub fn listen_connections(
                 let addr_q = addr_queue.clone();
                 let sender = cache_sender.clone();
                 let cache = cache_dir.clone();
-                pool.execute(move || http_handler(stream, cache, cache_ttl, sender, addr_q));
+                pool.execute(move || {
+                    http_handler(
+                        stream,
+                        cache,
+                        cache_ttl,
+                        sender,
+                        addr_q,
+                        failure_delay,
+                        failure_retries,
+                    )
+                });
             }
             Err(err) => warn!("{:?}", err),
         }

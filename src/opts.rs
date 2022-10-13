@@ -9,6 +9,8 @@ pub struct Opts {
     pub cache_dir: String,
     pub cache_ttl_mins: u16,
     pub workers: u16,
+    pub failure_delay: u64,
+    pub failure_retries: u16,
     pub services: Vec<Service>,
 }
 
