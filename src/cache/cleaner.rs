@@ -10,7 +10,7 @@ pub struct CacheCleaner {
     thread: JoinHandle<()>,
 }
 
-static SLEEP_TIME: u64 = 60; // secs
+static SLEEP_TIME: u64 = 15; // secs
 
 impl CacheCleaner {
     pub fn run(cache_dir: PathBuf) -> Self {

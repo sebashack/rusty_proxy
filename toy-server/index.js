@@ -39,7 +39,7 @@ app.get('/cyber/cyber.jpg', function (req, res) {
   res.sendFile('/home/sebastian/university/networking/rusty_proxy/toy-server/images/cyber.jpg')
 })
 
-app.get('/cyber/punk/.jpg', function (req, res) {
+app.get('/cyber/punk/cyber.jpg', function (req, res) {
   console.log(JSON.stringify(req.headers))
   res.sendFile('/home/sebastian/university/networking/rusty_proxy/toy-server/images/cyber_punk.jpg')
 })
