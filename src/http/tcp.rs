@@ -7,12 +7,10 @@ use crate::cache::io::CacheFile;
 use crate::concurrent::ccfifo_queue::CCFifoQueue;
 use crate::concurrent::pool::ThreadPool;
 use crate::http::connection_handler::http_handler;
+use crate::opts::Service;
 use std::path::PathBuf;
 
-type Addr = String;
-type Port = u16;
-
-pub fn mk_tcp_listener(addr: Addr, port: Port) -> Result<TcpListener> {
+pub fn mk_tcp_listener(addr: String, port: u16) -> Result<TcpListener> {
     let addr = format!("{}:{:?}", addr, port);
     return TcpListener::bind(addr.clone())
         .context(format!("Failed to bind TcpListener to {}", addr));
@@ -24,7 +22,7 @@ pub fn listen_connections(
     cache_dir: PathBuf,
     cache_ttl: u64,
     cache_sender: &Sender<CacheFile>,
-    addr_queue: &CCFifoQueue<(Addr, Port)>,
+    addr_queue: &CCFifoQueue<Service>,
 ) {
     for conn in listener.incoming() {
         match conn {

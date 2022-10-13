@@ -8,33 +8,31 @@ use crate::http::{
     request::{Method, Request},
     response::Response,
 };
+use crate::opts::Service;
 use std::path::PathBuf;
-
-type Addr = String;
-type Port = u16;
 
 pub fn http_handler(
     client_stream: TcpStream,
     cache_dir: PathBuf,
     cache_ttl: u64,
     cache_sender: Sender<CacheFile>,
-    addr_queue: CCFifoQueue<(Addr, Port)>,
+    addr_queue: CCFifoQueue<Service>,
 ) {
     match Request::read(&client_stream) {
         Ok(mut req) => {
             req.header.pretty_log();
             if let Ok(lock) = addr_queue.poller.lock() {
-                if let Ok((addr, port)) = lock.recv() {
+                if let Ok(service) = lock.recv() {
                     drop(lock);
-                    let addr_ = addr.clone();
-                    addr_queue.pusher.send((addr, port)).unwrap();
+                    let addr_ = service.addr.clone();
+                    addr_queue.pusher.send(service.clone()).unwrap();
 
                     let is_get_req = req.header.metadata.method == Method::Get;
                     let file_path = mk_file_path(&cache_dir, req.header.metadata.uri.clone());
                     let proxy_pass = || {
                         proxy_pass(
                             addr_,
-                            port,
+                            service.port,
                             &mut req,
                             &client_stream,
                             &cache_dir,

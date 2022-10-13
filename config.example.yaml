@@ -1,0 +1,14 @@
+port: 8080
+addr: 127.0.0.1
+cache_dir: /home/sebastian/university/networking/rusty_proxy/proxy_cache
+cache_ttl_mins: 1
+workers: 5
+services:
+  - addr: 127.0.0.1
+    port: 3000
+  - addr: 127.0.0.1
+    port: 3001
+  - addr: 127.0.0.1
+    port: 3002
+  - addr: 127.0.0.1
+    port: 3003
