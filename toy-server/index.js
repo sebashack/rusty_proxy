@@ -31,8 +31,18 @@ app.post('/url_post', function (req, res) {
 
 app.get('/vanh_gogh.jpg', function (req, res) {
   console.log(JSON.stringify(req.headers))
-  res.sendFile('/home/sebastian/university/networking/toy-server/images/vanh_gogh.jpg')
+  res.sendFile('/home/sebastian/university/networking/rusty_proxy/toy-server/images/vanh_gogh.jpg')
 })
 
-console.log("Running on port 3000")
-app.listen(3000)
+app.get('/cyber/cyber.jpg', function (req, res) {
+  console.log(JSON.stringify(req.headers))
+  res.sendFile('/home/sebastian/university/networking/rusty_proxy/toy-server/images/cyber.jpg')
+})
+
+app.get('/cyber/punk/.jpg', function (req, res) {
+  console.log(JSON.stringify(req.headers))
+  res.sendFile('/home/sebastian/university/networking/rusty_proxy/toy-server/images/cyber_punk.jpg')
+})
+
+console.log("Running on port " + process.env.PORT)
+app.listen(process.env.PORT)
