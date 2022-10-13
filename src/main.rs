@@ -35,6 +35,8 @@ fn main() {
             let pool = ThreadPool::new(opts.workers as usize);
             let addr_queue = CCFifoQueue::new(opts.services);
             let (cache_sender, cache_receiver) = mpsc::channel();
+
+            println!("Listening on {}:{}", opts.addr, opts.port);
             let listener = mk_tcp_listener(opts.addr, opts.port).unwrap();
 
             CacheWriter::run(cache_receiver);
