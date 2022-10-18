@@ -1,5 +1,5 @@
 use anyhow::{Context, Error, Result};
-use log::{error, info};
+use log::{info, warn};
 use mt_logger::{mt_log, Level};
 use std::collections::HashMap;
 use std::io::{prelude::*, BufReader, BufWriter};
@@ -191,10 +191,13 @@ impl Response {
             while pos < chunk.len() {
                 if let Ok(bytes_written) = writer.write(&chunk[pos..]) {
                     pos += bytes_written;
-                    writer.flush().unwrap();
+                    if let Err(_) = writer.flush() {
+                        warn!("Failed to flush response buffer");
+                        return;
+                    }
                 } else {
-                    error!("Failed to write response");
-                    return ();
+                    warn!("Failed to write response");
+                    return;
                 }
             }
         }

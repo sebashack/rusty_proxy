@@ -1,5 +1,5 @@
 use anyhow::{Context, Error, Result};
-use log::{error, info};
+use log::{info, warn};
 use mt_logger::{mt_log, Level};
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::net::TcpStream;
@@ -62,9 +62,12 @@ impl Request {
             while pos < chunk.len() {
                 if let Ok(bytes_written) = writer.write(&chunk[pos..]) {
                     pos += bytes_written;
-                    writer.flush().unwrap();
+                    if let Err(_) = writer.flush() {
+                        warn!("Failed to flush request buffer");
+                        return;
+                    }
                 } else {
-                    error!("Failed to write request");
+                    warn!("Failed to write request");
                     return;
                 }
             }
