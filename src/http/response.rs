@@ -189,9 +189,12 @@ impl Response {
         for chunk in data.chunks(buff_size) {
             let mut pos = 0;
             while pos < chunk.len() {
-                let bytes_written = writer.write(&chunk[pos..]).unwrap();
-                pos += bytes_written;
-                writer.flush().unwrap();
+                if let Ok(bytes_written) = writer.write(&chunk[pos..]) {
+                    pos += bytes_written;
+                    writer.flush().unwrap();
+                } else {
+                    return ();
+                }
             }
         }
     }
