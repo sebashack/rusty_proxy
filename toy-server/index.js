@@ -2,6 +2,8 @@ const express = require('express')
 const app = express()
 const bodyParser = require('body-parser');
 
+assets_dir = process.env.ASSETS_DIR
+
 app.use(bodyParser.json());
 app.use(express.urlencoded({extended:false}));
 
@@ -31,17 +33,17 @@ app.post('/url_post', function (req, res) {
 
 app.get('/vanh_gogh.jpg', function (req, res) {
   console.log(JSON.stringify(req.headers))
-  res.sendFile('/home/sebastian/university/networking/rusty_proxy/toy-server/images/vanh_gogh.jpg')
+  res.sendFile(`${assets_dir}/vanh_gogh.jpg`)
 })
 
 app.get('/cyber/cyber.jpg', function (req, res) {
   console.log(JSON.stringify(req.headers))
-  res.sendFile('/home/sebastian/university/networking/rusty_proxy/toy-server/images/cyber.jpg')
+  res.sendFile(`${assets_dir}/cyber.jpg`)
 })
 
 app.get('/cyber/punk/cyber.jpg', function (req, res) {
   console.log(JSON.stringify(req.headers))
-  res.sendFile('/home/sebastian/university/networking/rusty_proxy/toy-server/images/cyber_punk.jpg')
+  res.sendFile(`${assets_dir}/cyber_punk.jpg`)
 })
 
 console.log("Running on port " + process.env.PORT)
