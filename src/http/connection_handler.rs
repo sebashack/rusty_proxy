@@ -115,9 +115,12 @@ fn proxy_pass(
                         }
                     }
 
-                    res.write(&client_stream)
+                    res.write(&client_stream);
                 }
-                Err(_) => error!("Failed to parse server response"),
+                Err(_) => {
+                    error!("Failed to parse server response");
+                    Response::response500().write(&client_stream);
+                }
             };
         }
         Err(err) => {
