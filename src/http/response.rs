@@ -1,5 +1,5 @@
 use anyhow::{Context, Error, Result};
-use log::info;
+use log::{error, info};
 use mt_logger::{mt_log, Level};
 use std::collections::HashMap;
 use std::io::{prelude::*, BufReader, BufWriter};
@@ -193,6 +193,7 @@ impl Response {
                     pos += bytes_written;
                     writer.flush().unwrap();
                 } else {
+                    error!("Failed to write response");
                     return ();
                 }
             }

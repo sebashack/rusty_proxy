@@ -1,5 +1,5 @@
 use anyhow::{Context, Error, Result};
-use log::info;
+use log::{error, info};
 use mt_logger::{mt_log, Level};
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::net::TcpStream;
@@ -64,7 +64,8 @@ impl Request {
                     pos += bytes_written;
                     writer.flush().unwrap();
                 } else {
-                    return ();
+                    error!("Failed to write request");
+                    return;
                 }
             }
         }
