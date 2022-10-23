@@ -145,6 +145,12 @@ The following diagrams provides a global picture of the implementation discussed
 ![architectue](https://raw.githubusercontent.com/sebashack/rusty_proxy/main/rusty_proxy_arch.png)
 
 
+## Test service
+
+In `toy-server` directory there is a simple Express.js application that serves multiple types of assets such as `.jpg`, `.png`, `.gif`,
+`.ico`, `.css`, `.js`. It will also respond to some PUT and POST requests with JSON payload and URL-encoded params.
+
+
 ## Conclusions
 
 Overall, all of the goals for the initial implementation of Rusty-Proxy 1.0 where accomplished. The program has been
