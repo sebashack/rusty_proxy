@@ -1,5 +1,11 @@
 # Rusty Reverse Proxy Server
 
+## Contributors
+
+- Daniel Arango Hoyos
+- Juan David Valencia Torres
+- Sebastián Pulido Gómez
+
 ## Introduction
 
 This programming project consists of the implementation of a reverse proxy sever with load balancing. A reverse proxy
@@ -58,8 +64,8 @@ pub struct Service {
 that is, the server queue allows each `Worker` to pop the service available on its head and push it to its tail. Thus
 the services are round-robined and once the `Worker` accesses the service's address and port, it is capable of proxy-passing
 the incoming request. When the service is done processing the request, it will reply to the corresponding `Worker` so it
-decides whether or not the response should be cached and replies to the client. There are some criteria to determine if
-a server response is cacheable:
+decides whether or not the response should be cached and can forward the response to the client. There are some criteria
+to determine if a server response is cacheable:
 
 - Its status code must be one of 20X.
 - It must be a static resource, namely, its content-type must be one of `application/octet-stream`, `text/css`, `text/javascript`,
@@ -77,7 +83,7 @@ A basic failure mechanism has been implemented in case that one of the proxied s
 a request is proxied to a service that is temporarily unavailable, and the connection fails, the `Worker` thread will
 retry the request `n` times with a specific `delay`. The maximum number of attempts and the delay are configurable parameters.
 
-The `cache` module defines all of the utilities reading, writing and handling cache files. Whenever a `Worker` thread
+The `cache` module defines all of the utilities for reading, writing and handling cache files. Whenever a `Worker` thread
 determines that a given service response is cacheable, it will send a `CacheFile` to the `CacheWriter`:
 
 
@@ -131,13 +137,29 @@ is to periodically traverse the cache directory and delete the expired cached fi
 `FileMetadada` header from the file, and given the timestamp and ttl, it determines whether the file should be removed or not.
 
 
-
 ## Overall architecture
 
 The following diagrams provides a global picture of the implementation discussed above:
 
 
 ![architectue](https://raw.githubusercontent.com/sebashack/rusty_proxy/main/rusty_proxy_arch.png)
+
+
+## Conclusions
+
+Overall, all of the goals for the initial implementation of Rusty-Proxy 1.0 where accomplished. The program has been
+deployed on t2 micro instances on AWS and seems to be handling concurrent and cached requests appropriately. There are
+some further limitations that we would like to overcome in future implementations:
+
+- The current number of workers in the thread-pool is static and is a property provided in the configuration file. We
+  would like to change this to a `max_workers` property which specifies the maximum number of workers that can be created
+  at any given time, but for situations where there is low demand, Rusty-Proxy should be able to reduce the number of
+  idle threads in order to save CPU.
+- We would like to implement support for chunked and compressed encodings which would improve the performance for transmitting
+  large assets.
+- We would like to have more flexible balancing policies such as specifying the priority for each service, or other
+  quantitative criteria for determining the queue ordering.
+
 
 ## References
 
@@ -147,6 +169,11 @@ The following diagrams provides a global picture of the implementation discussed
 - [4] https://www.nginx.com/resources/glossary/load-balancing
 - [5] https://doc.rust-lang.org/std/sync/mpsc/fn.channel.html
 - [6] https://doc.rust-lang.org/rust-by-example/fn/closures.html
+
+
+## Operating system
+
+This implementation has only been tested on Ubuntu 20.04 and 22.04 distributions.
 
 
 ## Install dependencies
