@@ -39,7 +39,8 @@ pub fn parse_version(input: &str) -> Result<&str> {
 
 pub fn is_cacheable_content_type(headers: &Headers) -> bool {
     if let Some(ct) = headers.get("content-type") {
-        return cacheable_types().contains(&ct.as_str());
+        let ct = ct.replace("; charset=UTF-8", "");
+        return cacheable_types().contains(&ct.trim());
     } else {
         return false;
     }
@@ -51,6 +52,7 @@ fn cacheable_types<'a>() -> Vec<&'a str> {
         "application/octet-stream",
         "text/css",
         "text/javascript",
+        "application/javascript",
         "image/apng",
         "image/avif",
         "image/gif",
