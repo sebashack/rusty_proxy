@@ -113,7 +113,7 @@ pub struct Response {
     pub body: Vec<u8>,
 }
 
-static MAX_CACHE_SIZE_MB: u32 = 20;
+static MAX_CACHE_SIZE_MB: u32 = 30;
 impl Response {
     pub fn from_cache_file(file: CacheFile) -> Self {
         let status = StatusLine {
