@@ -204,7 +204,7 @@ The binary's name is `rusty_proxy` and will be located at `<project-root>/dist`.
 ## Execute binary
 
 ```
-./dist/rusty_proxy /path/to/config.yaml
+RUST_LOG=INFO ./dist/rusty_proxy /path/to/config.yaml
 ```
 
 There is an example configuration file at the root of this project named `example_config.yaml`.
